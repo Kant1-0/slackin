@@ -1,41 +1,27 @@
 #!/usr/bin/env node
 
-var pkg = require('./../package')
-var args = require('args')
-var slackin = require('./../dist').default
+// es6 runtime requirements
+// we do this in addition to the polyfill
+// required in lib/index to support `git clone`
+// based installations (eg: heroku deploy)
+require('6to5/register');
 
-args
-  .option(['p', 'port'], 'Port to listen on [$PORT or 3000]', require('hostenv').PORT || process.env.PORT || 3000)
-  .option(['h', 'hostname'], 'Hostname to listen on [$HOSTNAME or 0.0.0.0]', require('hostenv').HOSTNAME || process.env.WEBSITE_HOSTNAME || '0.0.0.0')
-  .option(['c', 'channels'], 'One or more comma-separated channel names to allow single-channel guests [$SLACK_CHANNELS]', process.env.SLACK_CHANNELS)
-  .option(['i', 'interval'], 'How frequently (ms) to poll Slack [$SLACK_INTERVAL or 5000]', process.env.SLACK_INTERVAL || 5000)
-  .option(['P', 'path'], 'Path to serve slackin under', '/')
-  .option(['s', 'silent'], 'Do not print out warns or errors')
-  .option(['x', 'cors'], 'Enable CORS for all routes')
-  .option(['C', 'coc'], 'Full URL to a CoC that needs to be agreed to')
-  .option(['S', 'css'], 'Full URL to a custom CSS file to use on the main page')
-  .option(['?', 'help'], 'Show the usage information')
+var pkg = require('../package');
+var program = require('commander');
+var slackin = require('../lib');
 
-var flags = args.parse(process.argv, {
-  value: '<team-id> <api-token> <google-captcha-secret> <google-captcha-sitekey>',
-  help: false
-})
+program
+.version(pkg.version)
+.usage('[options] <slack-subdomain> <api-token>')
+.option('-p, --port <port>', 'Port to listen on [$PORT or 3000]', process.env.PORT || 3000)
+.option('-c, --channel <chan>', 'Single channel guest invite [$SLACK_CHANNEL]', process.env.SLACK_CHANNEL)
+.option('-i, --interval <int>', 'How frequently (ms) to poll Slack [$SLACK_INTERVAL or 1000]', process.env.SLACK_INTERVAL || 1000)
+.option('-s, --silent', 'Do not print out warns or errors')
+.option('-c, --css <file>', 'Full URL to a custom CSS file to use on the main page')
+.parse(process.argv);
 
-var org = args.sub[0] || process.env.SLACK_SUBDOMAIN
-var token = args.sub[1] || process.env.SLACK_API_TOKEN
-var emails = process.env.EMAIL_SLACK_LIST || ''
-
-var gcaptcha_secret = args.sub[2] || process.env.GOOGLE_CAPTCHA_SECRET
-var gcaptcha_sitekey = args.sub[3] || process.env.GOOGLE_CAPTCHA_SITEKEY
-
-
-
-if (flags.help) {
-  args.showHelp()
-}
-
-if (!org || !token || !gcaptcha_sitekey || !gcaptcha_secret) {
-  args.showHelp()
+if (program.args.length != 2) {
+  program.help();
 } else {
   flags.org = org
   flags.token = token
